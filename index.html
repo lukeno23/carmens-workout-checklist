@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carmen's Weekly Workout Checklist 👧🏻</title>
+
+<!-- PWA / Home screen -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#b8860b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<!-- Social preview -->
+<meta property="og:title" content="Carmen's Weekly Workout Checklist">
+<meta property="og:description" content="3 hours per week — tick off sessions as you go">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #faf9f7;
+    --card: #ffffff;
+    --text: #2d2a26;
+    --text-muted: #7a756e;
+    --accent: #b8860b;
+    --accent-light: #f5e6c8;
+    --green: #4a8c5c;
+    --green-light: #e2f0e7;
+    --border: #e8e4df;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --radius: 12px;
+  }
+
+  body.dark {
+    --bg: #1a1a1d;
+    --card: #242428;
+    --text: #e8e4df;
+    --text-muted: #9a958e;
+    --accent: #d4a017;
+    --accent-light: #3d3522;
+    --green: #5ea86e;
+    --green-light: #1e2e22;
+    --border: #3a3a3e;
+    --shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  header { text-align: center; padding: 24px 0 8px; }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  header p { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* Streak badge */
+  .streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 4px 12px;
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  /* Controls row */
+  .controls { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; }
+  .week-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+  .controls-right { display: flex; gap: 6px; align-items: center; }
+
+  .ctrl-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    font-size: 0.8rem; font-weight: 500; padding: 6px 14px; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .ctrl-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.reset:hover { background: #fee; border-color: #c66; color: #c33; }
+  .ctrl-btn.reset.confirming { background: #c33; border-color: #c33; color: white; animation: pulse 1s infinite; }
+
+  .dark-toggle {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    font-size: 1rem; width: 34px; height: 34px; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+  }
+  .dark-toggle:hover { background: var(--accent-light); border-color: var(--accent); }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+
+  /* Smart suggestion */
+  .suggestion {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .suggestion.visible { display: block; }
+  .suggestion-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 4px; }
+  .suggestion-text { font-size: 0.85rem; font-weight: 500; color: var(--text); line-height: 1.5; }
+
+  /* Rest day indicator */
+  .rest-indicator {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.83rem;
+    color: var(--green);
+    font-weight: 500;
+    display: none;
+  }
+  .rest-indicator.visible { display: block; }
+
+  /* Overall progress */
+  .overall-progress {
+    background: var(--card); border-radius: var(--radius); padding: 20px;
+    margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .overall-progress .label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .overall-progress .label-row span:first-child { font-weight: 600; font-size: 0.95rem; }
+  .overall-progress .label-row .time-display { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
+
+  .progress-bar-outer { width: 100%; height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; }
+  .progress-bar-inner { height: 100%; background: linear-gradient(90deg, var(--accent), #d4a017); border-radius: 6px; transition: width 0.4s ease; width: 0%; }
+  .progress-bar-inner.complete { background: linear-gradient(90deg, var(--green), #5ea86e); }
+
+  .progress-sub { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: var(--text-muted); }
+  .progress-sub.done { color: var(--green); }
+  .progress-sub .pct { font-weight: 600; }
+
+  /* Celebration */
+  .celebration {
+    display: none; position: relative; text-align: center; padding: 24px 20px;
+    margin-bottom: 16px; background: var(--green-light); border: 2px solid var(--green);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .celebration.visible { display: block; }
+  .celebration-text { font-size: 1.1rem; font-weight: 700; color: var(--green); animation: celebBounce 0.6s ease-out; }
+  .celebration-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+  @keyframes celebBounce { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); } 70% { transform: scale(0.95); } 100% { transform: scale(1); opacity: 1; } }
+  .confetti-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; }
+  .confetti { position: absolute; width: 8px; height: 8px; border-radius: 2px; top: -10px; }
+  @keyframes confettiFall { 0% { top: -10px; opacity: 1; transform: rotate(0deg) scale(1); } 80% { opacity: 1; } 100% { top: 110%; opacity: 0; transform: rotate(720deg) scale(0.5); } }
+  @keyframes confettiSway { 0%, 100% { margin-left: -15px; } 50% { margin-left: 15px; } }
+
+  /* Category cards */
+  .category {
+    background: var(--card); border-radius: var(--radius); padding: 16px 20px;
+    margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); transition: border-color 0.3s, background 0.3s;
+  }
+  .category.done { border-color: var(--green); background: var(--green-light); }
+  .category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .category-name { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+  .category-icon { font-size: 1.2rem; }
+  .category-target { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+  .category-progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .category-bar-outer { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .category-bar-inner { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; }
+  .category.done .category-bar-inner { background: var(--green); }
+  .category-time { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); min-width: 65px; text-align: right; }
+  .category.done .category-time { color: var(--green); }
+
+  /* Session chips */
+  .sessions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 28px; }
+  .session-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-light); color: var(--accent);
+    font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 20px;
+    cursor: pointer; transition: background 0.2s; position: relative;
+  }
+  .session-chip:hover { filter: brightness(0.92); }
+  .session-chip .remove { font-size: 0.85rem; line-height: 1; opacity: 0.6; }
+  .session-chip:hover .remove { opacity: 1; }
+  .session-chip .note-dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; margin-left: 2px; }
+  .category.done .session-chip { background: #c8e0cf; color: var(--green); }
+  .category.done .session-chip .note-dot { background: var(--green); }
+
+  /* Add session controls */
+  .add-session { display: flex; gap: 8px; align-items: center; }
+  .duration-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .duration-btn {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-size: 0.75rem; font-weight: 500; padding: 5px 10px; border-radius: 8px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .duration-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .duration-btn.custom-input-wrap { padding: 0; display: flex; align-items: center; overflow: hidden; }
+  .custom-input-wrap input {
+    width: 36px; border: none; background: transparent; text-align: center;
+    font-size: 0.75rem; font-weight: 500; padding: 5px 2px 5px 8px; color: var(--text); outline: none;
+  }
+  .custom-input-wrap input::placeholder { color: var(--text-muted); }
+  .custom-input-wrap span { font-size: 0.7rem; color: var(--text-muted); padding-right: 8px; }
+
+  /* Split session button */
+  .split-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px;
+    margin-bottom: 16px; background: var(--card); border: 2px dashed var(--border);
+    border-radius: var(--radius); color: var(--text-muted); font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .split-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); z-index: 100; justify-content: center; align-items: center; padding: 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: var(--card); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); }
+  .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .modal .modal-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+  .modal-field { margin-bottom: 16px; }
+  .modal-field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; }
+  .modal-field input[type="number"], .modal-field input[type="text"] {
+    width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.9rem; outline: none; background: var(--bg); color: var(--text);
+  }
+  .modal-field input:focus { border-color: var(--accent); }
+  .modal-categories { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .modal-cat-row { display: flex; align-items: center; gap: 10px; }
+  .modal-cat-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+  .modal-cat-row .cat-label { flex: 1; font-size: 0.85rem; font-weight: 500; }
+  .modal-cat-row .cat-mins {
+    width: 60px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.8rem; text-align: center; outline: none; background: var(--bg); color: var(--text);
+  }
+  .modal-cat-row .cat-mins:focus { border-color: var(--accent); }
+  .modal-cat-row .cat-mins:disabled { opacity: 0.3; }
+  .modal-cat-row .cat-mins-label { font-size: 0.7rem; color: var(--text-muted); }
+  .modal-remaining { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px; padding: 8px 12px; background: var(--bg); border-radius: 8px; text-align: center; }
+  .modal-remaining.over { color: #c33; background: #fee; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-actions button { padding: 8px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .modal-cancel { background: none; border: 1px solid var(--border); color: var(--text-muted); }
+  .modal-cancel:hover { background: var(--bg); }
+  .modal-confirm { background: var(--accent); border: none; color: white; }
+  .modal-confirm:hover { background: #9a7209; }
+  .modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Note modal extras */
+  .note-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; outline: none; background: var(--bg); color: var(--text); font-family: inherit; resize: none; height: 60px; }
+  .note-input:focus { border-color: var(--accent); }
+
+  /* Collapsible sections */
+  .section { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .section-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+  .section-toggle h2 { font-size: 0.95rem; font-weight: 600; }
+  .section-toggle .arrow { font-size: 0.8rem; color: var(--text-muted); transition: transform 0.3s; }
+  .section-toggle .arrow.open { transform: rotate(180deg); }
+  .section-body { display: none; margin-top: 14px; }
+  .section-body.visible { display: block; }
+
+  /* Guidance */
+  .guidance-content h3 { font-size: 0.85rem; font-weight: 600; color: var(--accent); margin-top: 16px; margin-bottom: 6px; }
+  .guidance-content h3:first-child { margin-top: 0; }
+  .guidance-content p { font-size: 0.83rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 8px; }
+  .tip-card { background: var(--accent-light); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .tip-card p { color: var(--text); margin-bottom: 0; }
+
+  /* History */
+  .history-empty { font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 12px 0; }
+  .history-trend { font-size: 0.8rem; color: var(--text-muted); padding: 10px 14px; background: var(--bg); border-radius: 8px; margin-bottom: 12px; line-height: 1.5; }
+  .history-trend strong { color: var(--text); }
+  .history-week { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; background: var(--bg); }
+  .history-week:last-child { margin-bottom: 0; }
+  .history-week-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .history-week-label { font-size: 0.85rem; font-weight: 600; }
+  .history-week-total { font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
+  .history-week-total.complete { background: var(--green-light); color: var(--green); }
+  .history-week-total.partial { background: var(--accent-light); color: var(--accent); }
+  .history-cats { display: flex; flex-direction: column; gap: 6px; }
+  .history-cat-row { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; }
+  .history-cat-icon { font-size: 0.9rem; width: 20px; text-align: center; }
+  .history-cat-name { flex: 1; color: var(--text-muted); font-weight: 500; }
+  .history-cat-bar-outer { width: 80px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .history-cat-bar-inner { height: 100%; border-radius: 3px; background: var(--accent); }
+  .history-cat-bar-inner.full { background: var(--green); }
+  .history-cat-time { min-width: 55px; text-align: right; font-weight: 600; color: var(--text-muted); font-size: 0.75rem; }
+  .history-cat-time.met { color: var(--green); }
+  .history-clear { margin-top: 12px; display: flex; justify-content: flex-end; }
+  .history-clear button { background: none; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.75rem; padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+  .history-clear button:hover { background: #fee; border-color: #c66; color: #c33; }
+
+  /* Backup */
+  .backup-content p { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5; }
+  .backup-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+  .backup-btns button { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .backup-export { background: var(--accent); border: none; color: white; }
+  .backup-export:hover { background: #9a7209; }
+  .backup-import { background: none; border: 1px solid var(--border); color: var(--text); }
+  .backup-import:hover { background: var(--accent-light); border-color: var(--accent); }
+  .backup-textarea { width: 100%; height: 60px; border: 1px solid var(--border); border-radius: 8px; padding: 8px; font-size: 0.7rem; font-family: monospace; resize: none; outline: none; background: var(--bg); color: var(--text); display: none; }
+  .backup-textarea.visible { display: block; }
+  .backup-status { font-size: 0.78rem; font-weight: 500; margin-top: 6px; min-height: 1.2em; }
+  .backup-status.success { color: var(--green); }
+  .backup-status.error { color: #c33; }
+
+  /* Settings */
+  .settings-cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .settings-cat-row .cat-label { flex: 1; font-size: 0.85rem; font-weight: 500; }
+  .settings-cat-row input {
+    width: 60px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.8rem; text-align: center; outline: none; background: var(--bg); color: var(--text);
+  }
+  .settings-cat-row input:focus { border-color: var(--accent); }
+  .settings-cat-row span { font-size: 0.7rem; color: var(--text-muted); }
+  .settings-note { font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; line-height: 1.5; }
+  .settings-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .settings-actions button { padding: 7px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+  .settings-save { background: var(--accent); border: none; color: white; }
+  .settings-save:hover { background: #9a7209; }
+  .settings-reset { background: none; border: 1px solid var(--border); color: var(--text-muted); }
+  .settings-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Footer */
+  .footer-credit { text-align: center; font-size: 0.65rem; color: var(--text-muted); opacity: 0.5; padding: 30px 0 10px; letter-spacing: 0.02em; }
+
+  @media (max-width: 400px) {
+    body { padding: 12px; padding-bottom: 80px; }
+    .duration-btns { gap: 3px; }
+    .duration-btn { padding: 5px 8px; font-size: 0.7rem; }
+    .modal { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Carmen's Weekly Workout Checklist 👧🏻</h1>
+  <p>3 hours per week — tick off sessions as you go</p>
+  <div class="streak-badge" id="streakBadge" style="display:none"></div>
+</header>
+
+<div class="controls">
+  <span class="week-label" id="weekLabel"></span>
+  <div class="controls-right">
+    <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+    <button class="ctrl-btn reset" onclick="resetWeek()">New Week</button>
+  </div>
+</div>
+
+<!-- Smart suggestion -->
+<div class="suggestion" id="suggestion">
+  <div class="suggestion-label">Suggested today</div>
+  <div class="suggestion-text" id="suggestionText"></div>
+</div>
+
+<!-- Rest day indicator -->
+<div class="rest-indicator" id="restIndicator"></div>
+
+<div class="overall-progress">
+  <div class="label-row">
+    <span>Total Progress</span>
+    <span class="time-display" id="totalTime">0 / 180 min</span>
+  </div>
+  <div class="progress-bar-outer">
+    <div class="progress-bar-inner" id="totalBar"></div>
+  </div>
+  <div class="progress-sub" id="progressSub">
+    <span id="totalRemaining"></span>
+    <span class="pct" id="totalPctLabel"></span>
+  </div>
+</div>
+
+<div class="celebration" id="celebration">
+  <div class="confetti-container" id="confettiContainer"></div>
+  <div class="celebration-text">Week complete — well done, Carmen!</div>
+  <div class="celebration-sub">All categories hit their targets this week</div>
+</div>
+
+<button class="split-btn" onclick="openSplitModal()">
+  <span>&#x2702;</span> Log a mixed session (multiple categories)
+</button>
+
+<div id="categories"></div>
+
+<!-- Split session modal -->
+<div class="modal-overlay" id="splitModal">
+  <div class="modal">
+    <h2>Log a Mixed Session</h2>
+    <p class="modal-desc">Enter the total session time, select which categories it covered, and adjust the minutes for each.</p>
+    <div class="modal-field">
+      <label>Total session time (minutes)</label>
+      <input type="number" id="splitTotalTime" min="1" max="120" placeholder="e.g. 30" oninput="updateSplitAllocation()">
+    </div>
+    <div class="modal-categories" id="splitCategories"></div>
+    <div class="modal-remaining" id="splitRemaining">Select categories and enter total time above</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeSplitModal()">Cancel</button>
+      <button class="modal-confirm" id="splitConfirm" onclick="confirmSplit()" disabled>Log Session</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <h2>Session Note</h2>
+    <p class="modal-desc">Add an optional note — video name, how it felt, anything useful.</p>
+    <textarea class="note-input" id="noteInput" placeholder="e.g. Heather Robertson 30 min leg day — felt challenging"></textarea>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="modal-cancel" onclick="closeNoteModal(false)">Skip</button>
+      <button class="modal-confirm" onclick="closeNoteModal(true)">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guidance notes -->
+<div class="section">
+  <div class="section-toggle" onclick="toggleSection('guidance')">
+    <h2>Guidance Notes</h2>
+    <span class="arrow" id="guidanceArrow">&#9660;</span>
+  </div>
+  <div class="section-body guidance-content" id="guidanceBody">
+    <h3>Why this balance?</h3>
+    <p>About 58% of your weekly time is strength-focused (lower body, upper body, full body/pilates) and 42% is cardio and core. This ratio is intentional: for gradual, healthy weight loss, preserving and building lean muscle is more effective than heavy cardio. Muscle tissue burns more calories at rest, and resistance training is what creates the lean, toned look rather than just a lower number on the scale.</p>
+    <h3>Sequencing tips</h3>
+    <div class="tip-card"><p><strong>Avoid back-to-back lower body days.</strong> Your legs and glutes need at least one day to recover between strength sessions. If you did a leg session yesterday, pick cardio, upper body, or core today.</p></div>
+    <div class="tip-card"><p><strong>Pair a strength day with a lighter day.</strong> After a tough full body or lower body session, a walking cardio or core session the next day allows recovery while keeping momentum.</p></div>
+    <div class="tip-card"><p><strong>Upper body can go almost anywhere.</strong> Arms and shoulders recover quickly and don't interfere much with other session types, so slot these wherever convenient.</p></div>
+    <div class="tip-card"><p><strong>Splitting is fine.</strong> A 45-minute target can be two 20-minute sessions, or a 30 and a 15. What matters is the weekly total per category, not individual session length.</p></div>
+    <h3>A note on progression</h3>
+    <p>If this balance starts feeling easy after a few weeks, the first thing to increase is the intensity of your strength sessions (heavier weights, harder video progressions) rather than adding more time. Quality over quantity.</p>
+    <h3>What about rest days?</h3>
+    <p>With 3 hours spread across 7 days, you'll naturally have lighter days or full rest days. That's by design. Recovery is when your muscles actually adapt and get stronger. Aim for at least one full rest day per week, two if your body asks for it.</p>
+  </div>
+</div>
+
+<!-- Week history -->
+<div class="section">
+  <div class="section-toggle" onclick="toggleSection('history')">
+    <h2>Week History</h2>
+    <span class="arrow" id="historyArrow">&#9660;</span>
+  </div>
+  <div class="section-body" id="historyBody">
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="section">
+  <div class="section-toggle" onclick="toggleSection('settings')">
+    <h2>Adjust Targets</h2>
+    <span class="arrow" id="settingsArrow">&#9660;</span>
+  </div>
+  <div class="section-body" id="settingsBody">
+    <div id="settingsCats"></div>
+    <p class="settings-note">Changing targets takes effect immediately for the current week. History keeps the targets that were active at the time.</p>
+    <div class="settings-actions">
+      <button class="settings-save" onclick="saveSettings()">Apply Changes</button>
+      <button class="settings-reset" onclick="resetSettings()">Reset to Defaults</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup -->
+<div class="section">
+  <div class="section-toggle" onclick="toggleSection('backup')">
+    <h2>Backup &amp; Restore</h2>
+    <span class="arrow" id="backupArrow">&#9660;</span>
+  </div>
+  <div class="section-body backup-content" id="backupBody">
+    <p>Your progress auto-saves in this browser. Use these options to create a manual backup or restore from one. You can also bookmark this page after logging sessions — the URL stores your progress too.</p>
+    <div class="backup-btns">
+      <button class="backup-export" onclick="exportBackup()">Copy Backup</button>
+      <button class="backup-import" onclick="showImportField()">Restore Backup</button>
+    </div>
+    <textarea class="backup-textarea" id="backupTextarea" placeholder="Paste your backup code here, then press Restore again."></textarea>
+    <div class="backup-status" id="backupStatus"></div>
+  </div>
+</div>
+
+<p class="footer-credit">Lovingly made by Luke</p>
+
+<script>
+/* ===== Default categories (can be overridden by saved settings) ===== */
+const DEFAULT_TARGETS = { lower: 45, upper: 25, fullbody: 35, cardio: 45, core: 30 };
+
+const CAT_META = [
+  { id: 'lower',    name: 'Lower Body Strength',  icon: '🦵', desc: 'Legs & glutes' },
+  { id: 'upper',    name: 'Upper Body Strength',   icon: '💪', desc: 'Arms & weights' },
+  { id: 'fullbody', name: 'Full Body / Pilates',   icon: '🧘', desc: 'Functional strength' },
+  { id: 'cardio',   name: 'Walking Cardio',        icon: '🚶', desc: 'Steady-state cardio' },
+  { id: 'core',     name: 'Core & Abs',            icon: '🎯', desc: 'Stability & strength' }
+];
+
+let targets = loadTargets();
+function getCategories() { return CAT_META.map(c => ({ ...c, target: targets[c.id] })); }
+
+const QUICK_DURATIONS = [15, 20, 25, 30, 45];
+let state = loadState();
+
+/* ===== ISO 8601 Week helpers ===== */
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return { year: d.getUTCFullYear(), week: weekNo };
+}
+
+function getMondayOfISOWeek(year, week) {
+  const jan4 = new Date(year, 0, 4);
+  const dayOfWeek = jan4.getDay() || 7;
+  const week1Monday = new Date(year, 0, 4 - dayOfWeek + 1);
+  const monday = new Date(week1Monday);
+  monday.setDate(week1Monday.getDate() + (week - 1) * 7);
+  return monday;
+}
+
+function getWeekId() {
+  const iw = getISOWeek(new Date());
+  return `${iw.year}-W${String(iw.week).padStart(2, '0')}`;
+}
+
+function getWeekLabel() {
+  const iw = getISOWeek(new Date());
+  const monday = getMondayOfISOWeek(iw.year, iw.week);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const opts = { month: 'short', day: 'numeric' };
+  return `Week of ${monday.toLocaleDateString('en-GB', opts)} – ${sunday.toLocaleDateString('en-GB', opts)}`;
+}
+
+function weekLabelFromId(weekId) {
+  const match = weekId.match(/(\d{4})-W(\d+)/);
+  if (!match) return weekId;
+  const monday = getMondayOfISOWeek(parseInt(match[1]), parseInt(match[2]));
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const opts = { month: 'short', day: 'numeric' };
+  return `${monday.toLocaleDateString('en-GB', opts)} – ${sunday.toLocaleDateString('en-GB', opts)}`;
+}
+
+/* ===== State defaults ===== */
+function defaultState() {
+  const s = { weekId: getWeekId(), sessionDates: [] };
+  CAT_META.forEach(c => { s[c.id] = []; });
+  // notes stored as { catId, index, text }
+  s.notes = [];
+  return s;
+}
+
+/* ===== Settings / Targets ===== */
+function loadTargets() {
+  try {
+    const raw = localStorage.getItem('carmen-targets');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { ...DEFAULT_TARGETS };
+}
+
+function saveTargets() {
+  try { localStorage.setItem('carmen-targets', JSON.stringify(targets)); } catch(e) {}
+}
+
+/* ===== Persistence ===== */
+function encodeState(st) { return btoa(unescape(encodeURIComponent(JSON.stringify(st)))); }
+function decodeState(str) { try { return JSON.parse(decodeURIComponent(escape(atob(str)))); } catch(e) { return null; } }
+
+function loadHistory() { try { const r = localStorage.getItem('carmen-workout-history'); if (r) return JSON.parse(r); } catch(e) {} return []; }
+function saveHistory(h) { try { localStorage.setItem('carmen-workout-history', JSON.stringify(h)); } catch(e) {} }
+
+function archiveWeek(weekState) {
+  const CATS = getCategories();
+  const hasData = CATS.some(c => weekState[c.id] && weekState[c.id].length > 0);
+  if (!hasData) return;
+  const history = loadHistory();
+  if (history.some(h => h.weekId === weekState.weekId)) return;
+  const summary = { weekId: weekState.weekId, weekLabel: weekLabelFromId(weekState.weekId), categories: {}, notes: weekState.notes || [] };
+  let totalLogged = 0, totalTarget = 0;
+  CATS.forEach(c => {
+    const logged = (weekState[c.id] || []).reduce((a, b) => a + b, 0);
+    summary.categories[c.id] = { logged, target: c.target, sessions: weekState[c.id] || [] };
+    totalLogged += logged; totalTarget += c.target;
+  });
+  summary.totalLogged = totalLogged; summary.totalTarget = totalTarget;
+  history.unshift(summary);
+  if (history.length > 52) history.length = 52;
+  saveHistory(history);
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('carmen-workout');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.weekId && parsed.weekId !== getWeekId()) archiveWeek(parsed);
+      if (parsed.weekId === getWeekId()) {
+        if (!parsed.notes) parsed.notes = [];
+        if (!parsed.sessionDates) parsed.sessionDates = [];
+        return parsed;
+      }
+    }
+  } catch(e) {}
+  if (window.location.hash.length > 1) {
+    const decoded = decodeState(window.location.hash.substring(1));
+    if (decoded && decoded.weekId === getWeekId()) return decoded;
+  }
+  return defaultState();
+}
+
+function saveState() {
+  try { localStorage.setItem('carmen-workout', JSON.stringify(state)); } catch(e) {}
+  try { history.replaceState(null, '', '#' + encodeState(state)); } catch(e) {}
+}
+
+/* ===== Core actions ===== */
+let pendingSession = null;
+
+function addSession(catId, mins) {
+  if (!mins || mins <= 0 || mins > 120) return;
+  state[catId].push(mins);
+  const today = new Date().toISOString().slice(0, 10);
+  if (!state.sessionDates.includes(today)) state.sessionDates.push(today);
+  saveState();
+
+  // Prompt for optional note
+  pendingSession = { catId, index: state[catId].length - 1 };
+  document.getElementById('noteInput').value = '';
+  document.getElementById('noteModal').classList.add('visible');
+}
+
+function closeNoteModal(save) {
+  if (save && pendingSession) {
+    const text = document.getElementById('noteInput').value.trim();
+    if (text) {
+      state.notes.push({ catId: pendingSession.catId, index: pendingSession.index, text });
+      saveState();
+    }
+  }
+  pendingSession = null;
+  document.getElementById('noteModal').classList.remove('visible');
+  render();
+}
+
+function removeSession(catId, index) {
+  state[catId].splice(index, 1);
+  state.notes = state.notes.filter(n => !(n.catId === catId && n.index === index))
+    .map(n => { if (n.catId === catId && n.index > index) n.index--; return n; });
+  saveState();
+  render();
+}
+
+function getNoteForSession(catId, index) {
+  const n = state.notes.find(n => n.catId === catId && n.index === index);
+  return n ? n.text : null;
+}
+
+/* ===== Reset ===== */
+let resetPending = false, resetTimer = null;
+function resetWeek() {
+  const btn = document.querySelector('.ctrl-btn.reset');
+  if (!resetPending) {
+    resetPending = true; btn.textContent = 'Tap again to confirm'; btn.classList.add('confirming');
+    resetTimer = setTimeout(() => { resetPending = false; btn.classList.remove('confirming'); btn.textContent = 'New Week'; }, 3000);
+    return;
+  }
+  clearTimeout(resetTimer); resetPending = false; btn.classList.remove('confirming'); btn.textContent = 'New Week';
+  archiveWeek(state); state = defaultState(); saveState(); render();
+}
+
+/* ===== Dark mode ===== */
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark');
+  localStorage.setItem('carmen-dark', isDark ? '1' : '0');
+  document.getElementById('darkToggle').textContent = isDark ? '☀️' : '🌙';
+}
+function loadDarkMode() {
+  if (localStorage.getItem('carmen-dark') === '1') {
+    document.body.classList.add('dark');
+    document.getElementById('darkToggle').textContent = '☀️';
+  }
+}
+
+/* ===== Streak ===== */
+function getStreak() {
+  const history = loadHistory();
+  // Current week counts if any session logged
+  const CATS = getCategories();
+  const currentHasData = CATS.some(c => state[c.id].length > 0);
+  let streak = currentHasData ? 1 : 0;
+  // Check consecutive past weeks
+  const currentIW = getISOWeek(new Date());
+  let checkYear = currentIW.year, checkWeek = currentIW.week;
+  for (let i = 0; i < history.length; i++) {
+    checkWeek--;
+    if (checkWeek < 1) { checkYear--; checkWeek = 52; }
+    const expectedId = `${checkYear}-W${String(checkWeek).padStart(2, '0')}`;
+    const found = history.find(h => h.weekId === expectedId);
+    if (found && found.totalLogged > 0) { streak++; } else { break; }
+  }
+  return streak;
+}
+
+function renderStreak() {
+  const streak = getStreak();
+  const badge = document.getElementById('streakBadge');
+  if (streak >= 2) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = `🔥 ${streak} week streak`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ===== Smart suggestion ===== */
+function renderSuggestion() {
+  const CATS = getCategories();
+  const el = document.getElementById('suggestion');
+  const textEl = document.getElementById('suggestionText');
+
+  // Find categories furthest from target
+  const gaps = CATS.map(c => {
+    const logged = state[c.id].reduce((a, b) => a + b, 0);
+    return { ...c, logged, remaining: Math.max(0, c.target - logged), pct: c.target > 0 ? logged / c.target : 1 };
+  }).filter(c => c.remaining > 0).sort((a, b) => a.pct - b.pct);
+
+  if (gaps.length === 0) {
+    el.classList.remove('visible');
+    return;
+  }
+
+  // Check what was done recently to avoid back-to-back
+  const today = new Date().toISOString().slice(0, 10);
+  const recentLower = state.sessionDates.includes(today) && state.lower.length > 0;
+
+  let suggestion = '';
+  const top = gaps[0];
+  const secondaryOptions = gaps.filter(g => g.id !== top.id);
+
+  if (top.id === 'lower' && recentLower && secondaryOptions.length > 0) {
+    const alt = secondaryOptions[0];
+    suggestion = `You've already done lower body today. Try <strong>${alt.icon} ${alt.name}</strong> instead — you have ${alt.remaining} min left to hit that target.`;
+  } else if (gaps.length >= 2 && gaps[0].pct === 0 && gaps[1].pct === 0) {
+    suggestion = `You haven't started <strong>${gaps[0].icon} ${gaps[0].name}</strong> or <strong>${gaps[1].icon} ${gaps[1].name}</strong> yet this week. Either would be a great pick today.`;
+  } else {
+    suggestion = `<strong>${top.icon} ${top.name}</strong> needs the most attention — ${top.remaining} min left to hit the target.`;
+  }
+
+  // Add day-of-week context
+  const dayOfWeek = new Date().getDay(); // 0=Sun
+  const daysLeft = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const totalRemaining = gaps.reduce((a, g) => a + g.remaining, 0);
+  if (daysLeft > 0 && daysLeft <= 2 && totalRemaining > 30) {
+    suggestion += ` You have ${daysLeft} day${daysLeft > 1 ? 's' : ''} left this week with ${totalRemaining} min still to go.`;
+  }
+
+  textEl.innerHTML = suggestion;
+  el.classList.add('visible');
+}
+
+/* ===== Rest day awareness ===== */
+function renderRestIndicator() {
+  const el = document.getElementById('restIndicator');
+  const dates = state.sessionDates || [];
+  if (dates.length === 0) { el.classList.remove('visible'); return; }
+
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+
+  // Count consecutive days including today
+  let consecutive = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    if (dates.includes(d.toISOString().slice(0, 10))) { consecutive++; } else { break; }
+  }
+
+  // Last session date
+  const sorted = [...dates].sort();
+  const lastDate = sorted[sorted.length - 1];
+
+  if (consecutive >= 3) {
+    el.textContent = `💤 You've exercised ${consecutive} days in a row. Consider a rest day — recovery is when your muscles get stronger.`;
+    el.classList.add('visible');
+  } else if (!dates.includes(todayStr) && lastDate) {
+    const daysSince = Math.floor((today - new Date(lastDate)) / 86400000);
+    if (daysSince >= 3) {
+      el.textContent = `⏰ It's been ${daysSince} days since your last logged session. A short session today would keep the momentum going.`;
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  } else {
+    el.classList.remove('visible');
+  }
+}
+
+/* ===== Split session modal ===== */
+function openSplitModal() {
+  const CATS = getCategories();
+  const container = document.getElementById('splitCategories');
+  container.innerHTML = '';
+  CATS.forEach(cat => {
+    container.innerHTML += `
+      <div class="modal-cat-row">
+        <input type="checkbox" id="split-check-${cat.id}" onchange="updateSplitAllocation()">
+        <span class="cat-label">${cat.icon} ${cat.name}</span>
+        <input type="number" class="cat-mins" id="split-mins-${cat.id}" min="0" max="120" placeholder="0" disabled oninput="updateSplitRemaining()">
+        <span class="cat-mins-label">min</span>
+      </div>`;
+  });
+  document.getElementById('splitTotalTime').value = '';
+  document.getElementById('splitRemaining').textContent = 'Select categories and enter total time above';
+  document.getElementById('splitRemaining').className = 'modal-remaining';
+  document.getElementById('splitConfirm').disabled = true;
+  document.getElementById('splitModal').classList.add('visible');
+}
+
+function closeSplitModal() { document.getElementById('splitModal').classList.remove('visible'); }
+
+function updateSplitAllocation() {
+  const CATS = getCategories();
+  const total = parseInt(document.getElementById('splitTotalTime').value) || 0;
+  const checked = [];
+  CATS.forEach(cat => {
+    const cb = document.getElementById('split-check-' + cat.id);
+    const mins = document.getElementById('split-mins-' + cat.id);
+    if (cb.checked) { checked.push(cat.id); mins.disabled = false; } else { mins.disabled = true; mins.value = ''; }
+  });
+  if (checked.length > 0 && total > 0) {
+    const perCat = Math.floor(total / checked.length);
+    const remainder = total - (perCat * checked.length);
+    checked.forEach((id, i) => {
+      const mins = document.getElementById('split-mins-' + id);
+      if (!mins.value || mins.dataset.autoSet === 'true') { mins.value = perCat + (i < remainder ? 1 : 0); mins.dataset.autoSet = 'true'; }
+    });
+  }
+  updateSplitRemaining();
+}
+
+function updateSplitRemaining() {
+  const CATS = getCategories();
+  const total = parseInt(document.getElementById('splitTotalTime').value) || 0;
+  let allocated = 0, checkedCount = 0;
+  CATS.forEach(cat => {
+    const cb = document.getElementById('split-check-' + cat.id);
+    const mins = document.getElementById('split-mins-' + cat.id);
+    if (cb.checked) { checkedCount++; allocated += parseInt(mins.value) || 0; mins.addEventListener('focus', () => { mins.dataset.autoSet = 'false'; }, { once: true }); }
+  });
+  const remaining = total - allocated;
+  const el = document.getElementById('splitRemaining');
+  const btn = document.getElementById('splitConfirm');
+  if (total === 0 || checkedCount === 0) { el.textContent = 'Select categories and enter total time above'; el.className = 'modal-remaining'; btn.disabled = true; }
+  else if (remaining === 0) { el.textContent = 'All ' + total + ' minutes allocated'; el.className = 'modal-remaining'; btn.disabled = false; }
+  else if (remaining > 0) { el.textContent = remaining + ' min still to allocate'; el.className = 'modal-remaining'; btn.disabled = true; }
+  else { el.textContent = Math.abs(remaining) + ' min over total — adjust the split'; el.className = 'modal-remaining over'; btn.disabled = true; }
+}
+
+function confirmSplit() {
+  const CATS = getCategories();
+  const today = new Date().toISOString().slice(0, 10);
+  let anyAdded = false;
+  CATS.forEach(cat => {
+    const cb = document.getElementById('split-check-' + cat.id);
+    const mins = parseInt(document.getElementById('split-mins-' + cat.id).value) || 0;
+    if (cb.checked && mins > 0) { state[cat.id].push(mins); anyAdded = true; }
+  });
+  if (anyAdded && !state.sessionDates.includes(today)) state.sessionDates.push(today);
+  saveState(); render(); closeSplitModal();
+}
+
+/* ===== Backup & Restore ===== */
+function toggleSection(name) {
+  document.getElementById(name + 'Body').classList.toggle('visible');
+  document.getElementById(name + 'Arrow').classList.toggle('open');
+  if (name === 'history') renderHistory();
+  if (name === 'settings') renderSettings();
+}
+
+function exportBackup() {
+  const exportData = { current: state, history: loadHistory(), targets };
+  const code = encodeState(exportData);
+  const textarea = document.getElementById('backupTextarea');
+  textarea.classList.add('visible'); textarea.value = code; textarea.select();
+  try { navigator.clipboard.writeText(code).then(() => showBackupStatus('Backup code copied to clipboard!', 'success')).catch(() => showBackupStatus('Code shown below — copy it manually.', 'success')); }
+  catch(e) { showBackupStatus('Code shown below — copy it manually.', 'success'); }
+}
+
+let importMode = false;
+function showImportField() {
+  const textarea = document.getElementById('backupTextarea');
+  if (!importMode) { textarea.classList.add('visible'); textarea.value = ''; textarea.placeholder = 'Paste your backup code here, then tap Restore again.'; showBackupStatus('Paste your code above, then tap Restore again.', ''); importMode = true; return; }
+  const code = textarea.value.trim();
+  if (!code) { showBackupStatus('Please paste a backup code first.', 'error'); return; }
+  const decoded = decodeState(code);
+  if (!decoded) { showBackupStatus('Invalid backup code. Check and try again.', 'error'); return; }
+  if (decoded.current && decoded.current.weekId) { state = decoded.current; if (decoded.history) saveHistory(decoded.history); if (decoded.targets) { targets = decoded.targets; saveTargets(); } }
+  else if (decoded.weekId) { state = decoded; }
+  else { showBackupStatus('Invalid backup code. Check and try again.', 'error'); return; }
+  if (!state.notes) state.notes = [];
+  if (!state.sessionDates) state.sessionDates = [];
+  saveState(); render(); renderHistory();
+  showBackupStatus('Progress restored!', 'success'); importMode = false; textarea.classList.remove('visible');
+}
+
+function showBackupStatus(msg, type) {
+  const el = document.getElementById('backupStatus');
+  el.textContent = msg; el.className = 'backup-status' + (type ? ' ' + type : '');
+  if (type) setTimeout(() => { el.textContent = ''; el.className = 'backup-status'; }, 4000);
+}
+
+/* ===== History ===== */
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  const hist = loadHistory();
+  const CATS = getCategories();
+
+  if (hist.length === 0) { container.innerHTML = '<div class="history-empty">No past weeks recorded yet. History will appear here once you complete or start a new week.</div>'; return; }
+
+  let html = '';
+
+  // Trend comparison
+  if (hist.length >= 1) {
+    const CATS_NOW = getCategories();
+    let currentTotal = 0;
+    CATS_NOW.forEach(c => { currentTotal += state[c.id].reduce((a, b) => a + b, 0); });
+    const lastWeek = hist[0];
+    const diff = currentTotal - lastWeek.totalLogged;
+    const completedWeeks = hist.filter(h => h.totalLogged >= h.totalTarget).length;
+    let trendText = '';
+    if (currentTotal > 0) {
+      trendText = diff > 0 ? `📈 You've logged <strong>${diff} more min</strong> than last week so far.`
+                 : diff < 0 ? `📊 You've logged <strong>${Math.abs(diff)} fewer min</strong> than last week so far — still time to catch up.`
+                 : `📊 Same as last week so far.`;
+    }
+    if (completedWeeks > 0) trendText += ` You've hit your target in <strong>${completedWeeks}</strong> of ${hist.length} recorded week${hist.length > 1 ? 's' : ''}.`;
+    if (trendText) html += `<div class="history-trend">${trendText}</div>`;
+  }
+
+  hist.forEach(week => {
+    const pct = week.totalTarget > 0 ? Math.round((week.totalLogged / week.totalTarget) * 100) : 0;
+    const isComplete = pct >= 100;
+    let catsHTML = '';
+    CATS.forEach(cat => {
+      const data = week.categories[cat.id] || { logged: 0, target: cat.target };
+      const catPct = Math.min(100, data.target > 0 ? (data.logged / data.target) * 100 : 0);
+      const isMet = data.logged >= data.target;
+      catsHTML += `<div class="history-cat-row"><span class="history-cat-icon">${cat.icon}</span><span class="history-cat-name">${cat.name}</span><div class="history-cat-bar-outer"><div class="history-cat-bar-inner${isMet ? ' full' : ''}" style="width:${catPct}%"></div></div><span class="history-cat-time${isMet ? ' met' : ''}">${data.logged} / ${data.target}</span></div>`;
+    });
+    html += `<div class="history-week"><div class="history-week-header"><span class="history-week-label">${week.weekLabel}</span><span class="history-week-total ${isComplete ? 'complete' : 'partial'}">${week.totalLogged} / ${week.totalTarget} min (${pct}%)</span></div><div class="history-cats">${catsHTML}</div></div>`;
+  });
+
+  html += `<div class="history-clear"><button onclick="clearHistory()">Clear history</button></div>`;
+  container.innerHTML = html;
+}
+
+let clearHistoryPending = false, clearHistoryTimer = null;
+function clearHistory() {
+  const btn = document.querySelector('.history-clear button');
+  if (!clearHistoryPending) { clearHistoryPending = true; btn.textContent = 'Tap again to confirm'; btn.style.cssText = 'background:#c33;color:white;border-color:#c33;'; clearHistoryTimer = setTimeout(() => { clearHistoryPending = false; btn.textContent = 'Clear history'; btn.style.cssText = ''; }, 3000); return; }
+  clearTimeout(clearHistoryTimer); clearHistoryPending = false; saveHistory([]); renderHistory();
+}
+
+/* ===== Settings ===== */
+function renderSettings() {
+  const container = document.getElementById('settingsCats');
+  container.innerHTML = '';
+  CAT_META.forEach(cat => {
+    container.innerHTML += `<div class="settings-cat-row"><span class="cat-label">${cat.icon} ${cat.name}</span><input type="number" id="setting-${cat.id}" min="0" max="120" value="${targets[cat.id]}"><span>min</span></div>`;
+  });
+}
+
+function saveSettings() {
+  CAT_META.forEach(cat => {
+    const val = parseInt(document.getElementById('setting-' + cat.id).value);
+    if (val >= 0 && val <= 120) targets[cat.id] = val;
+  });
+  saveTargets(); render();
+}
+
+function resetSettings() {
+  targets = { ...DEFAULT_TARGETS }; saveTargets(); renderSettings(); render();
+}
+
+/* ===== Confetti ===== */
+let celebrationShown = false;
+function launchConfetti() {
+  const container = document.getElementById('confettiContainer');
+  container.innerHTML = '';
+  const colors = ['#b8860b', '#4a8c5c', '#d4a017', '#e8845c', '#6b8cce', '#c77dba', '#e0c063'];
+  for (let i = 0; i < 40; i++) {
+    const p = document.createElement('div'); p.className = 'confetti';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    p.style.width = (5 + Math.random() * 6) + 'px'; p.style.height = (5 + Math.random() * 6) + 'px';
+    p.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    p.style.animation = `confettiFall ${1.5 + Math.random() * 2}s ${Math.random() * 0.8}s linear forwards, confettiSway ${0.5 + Math.random() * 0.5}s ${Math.random() * 0.3}s ease-in-out infinite`;
+    container.appendChild(p);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
+}
+
+/* ===== Keyboard handler ===== */
+function handleCustomKey(e, catId) {
+  if (e.key === 'Enter') { const val = parseInt(e.target.value); if (val > 0) { addSession(catId, val); e.target.value = ''; } }
+}
+
+/* ===== Main render ===== */
+function render() {
+  const CATS = getCategories();
+  document.getElementById('weekLabel').textContent = getWeekLabel();
+
+  // Total
+  let totalLogged = 0, totalTarget = 0;
+  CATS.forEach(c => { totalTarget += c.target; totalLogged += state[c.id].reduce((a, b) => a + b, 0); });
+  document.getElementById('totalTime').textContent = `${totalLogged} / ${totalTarget} min`;
+  const totalPct = Math.min(100, totalTarget > 0 ? (totalLogged / totalTarget) * 100 : 0);
+  const totalBar = document.getElementById('totalBar');
+  totalBar.style.width = totalPct + '%';
+  totalBar.className = 'progress-bar-inner' + (totalPct >= 100 ? ' complete' : '');
+
+  const remaining = Math.max(0, totalTarget - totalLogged);
+  document.getElementById('totalRemaining').textContent = remaining > 0 ? `${remaining} min left this week` : 'Target reached!';
+  document.getElementById('totalPctLabel').textContent = `${Math.round(totalPct)}%`;
+  document.getElementById('progressSub').className = 'progress-sub' + (remaining === 0 ? ' done' : '');
+
+  // Celebration
+  const allDone = CATS.every(c => state[c.id].reduce((a,b) => a+b, 0) >= c.target);
+  document.getElementById('celebration').className = 'celebration' + (allDone ? ' visible' : '');
+  if (allDone && !celebrationShown) { celebrationShown = true; setTimeout(() => launchConfetti(), 100); }
+  if (!allDone) celebrationShown = false;
+
+  // Categories
+  const container = document.getElementById('categories');
+  container.innerHTML = '';
+  CATS.forEach(cat => {
+    const logged = state[cat.id].reduce((a, b) => a + b, 0);
+    const pct = Math.min(100, cat.target > 0 ? (logged / cat.target) * 100 : 0);
+    const isDone = logged >= cat.target;
+    const div = document.createElement('div');
+    div.className = 'category' + (isDone ? ' done' : '');
+
+    let sessionsHTML = '';
+    state[cat.id].forEach((mins, i) => {
+      const note = getNoteForSession(cat.id, i);
+      const noteDot = note ? '<span class="note-dot"></span>' : '';
+      const tooltip = note ? ` title="${note.replace(/"/g, '&quot;')}"` : '';
+      sessionsHTML += `<span class="session-chip"${tooltip} onclick="removeSession('${cat.id}', ${i})">${mins} min${noteDot} <span class="remove">&times;</span></span>`;
+    });
+
+    let durBtnsHTML = '';
+    QUICK_DURATIONS.forEach(d => { durBtnsHTML += `<button class="duration-btn" onclick="addSession('${cat.id}', ${d})">+${d}</button>`; });
+
+    div.innerHTML = `
+      <div class="category-header">
+        <div class="category-name"><span class="category-icon">${cat.icon}</span> ${cat.name}</div>
+        <div class="category-target">${cat.desc} · ${cat.target} min goal</div>
+      </div>
+      <div class="category-progress-row">
+        <div class="category-bar-outer"><div class="category-bar-inner" style="width:${pct}%"></div></div>
+        <div class="category-time">${logged} / ${cat.target}</div>
+      </div>
+      <div class="sessions">${sessionsHTML || '<span style="font-size:0.75rem;color:var(--text-muted)">No sessions logged yet</span>'}</div>
+      <div class="add-session"><div class="duration-btns">${durBtnsHTML}<div class="duration-btn custom-input-wrap"><input type="number" placeholder="#" min="1" max="120" onkeydown="handleCustomKey(event, '${cat.id}')"><span>min</span></div></div></div>`;
+    container.appendChild(div);
+  });
+
+  renderStreak();
+  renderSuggestion();
+  renderRestIndicator();
+}
+
+/* ===== Init ===== */
+loadDarkMode();
+document.getElementById('splitModal').addEventListener('click', function(e) { if (e.target === this) closeSplitModal(); });
+document.getElementById('noteModal').addEventListener('click', function(e) { if (e.target === this) closeNoteModal(false); });
+render();
+</script>
+
+</body>
+</html>
