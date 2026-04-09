@@ -335,6 +335,18 @@
     .duration-btn { padding: 5px 8px; font-size: 0.7rem; }
     .modal { padding: 18px; }
   }
+
+  /* Toast messages */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #fff; font-weight: 600; font-size: 0.85rem;
+    padding: 10px 20px; border-radius: 20px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease; z-index: 9999;
+    white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .toast.show {
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body>
@@ -604,6 +616,28 @@ function saveState() {
 }
 
 /* ===== Core actions ===== */
+/* ===== Toast Messages ===== */
+const TOAST_MSGS = [
+  "I'm so proud of you!",
+  "Go, Carmencita, go!",
+  "Well done, qalbi, you're the best!",
+  "You're so strong!",
+  "You now deserve a burger!",
+  "You can have all the turron you want!",
+  "You're smelly now, but it's worth it.",
+  "Sweat is just fat crying."
+];
+let toastTimer = null;
+function showToast() {
+  const el = document.getElementById('toast');
+  const isFriday = new Date().getDay() === 5;
+  const msg = isFriday ? "It's the weekend! Wohoo!" : TOAST_MSGS[Math.floor(Math.random() * TOAST_MSGS.length)];
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
 function addSession(catId, mins) {
   if (!mins || mins <= 0 || mins > 120) return;
   state[catId].push(mins);
@@ -611,6 +645,7 @@ function addSession(catId, mins) {
   if (!state.sessionDates.includes(today)) state.sessionDates.push(today);
   saveState();
   render();
+  showToast();
 }
 
 function removeSession(catId, index) {
@@ -830,6 +865,7 @@ function confirmSplit() {
   });
   if (anyAdded && !state.sessionDates.includes(today)) state.sessionDates.push(today);
   saveState(); render(); closeSplitModal();
+  if (anyAdded) showToast();
 }
 
 /* ===== Backup & Restore ===== */
@@ -1035,5 +1071,6 @@ document.getElementById('splitModal').addEventListener('click', function(e) { if
 render();
 </script>
 
+<div class="toast" id="toast"></div>
 </body>
 </html>
