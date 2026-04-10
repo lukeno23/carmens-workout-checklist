@@ -1,23 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Carmen's Weekly Workout Checklist 👧🏻</title>
-
-<!-- PWA / Home screen -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#b8860b">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Workout">
-<link rel="apple-touch-icon" href="icon-192.png">
-
-<!-- Social preview -->
-<meta property="og:title" content="Carmen's Weekly Workout Checklist">
-<meta property="og:description" content="3 hours per week — tick off sessions as you go">
-<meta property="og:type" content="website">
 <style>
   :root {
     --bg: #faf9f7;
@@ -189,7 +175,9 @@
   .session-chip:hover { filter: brightness(0.92); }
   .session-chip .remove { font-size: 0.85rem; line-height: 1; opacity: 0.6; }
   .session-chip:hover .remove { opacity: 1; }
+  .session-chip .note-dot { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; margin-left: 2px; }
   .category.done .session-chip { background: #c8e0cf; color: var(--green); }
+  .category.done .session-chip .note-dot { background: var(--green); }
 
   /* Add session controls */
   .add-session { display: flex; gap: 8px; align-items: center; }
@@ -254,6 +242,9 @@
   .modal-confirm:hover { background: #9a7209; }
   .modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  /* Note modal extras */
+  .note-input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; outline: none; background: var(--bg); color: var(--text); font-family: inherit; resize: none; height: 60px; }
+  .note-input:focus { border-color: var(--accent); }
 
   /* Collapsible sections */
   .section { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin-top: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
@@ -335,24 +326,12 @@
     .duration-btn { padding: 5px 8px; font-size: 0.7rem; }
     .modal { padding: 18px; }
   }
-
-  /* Toast messages */
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--accent); color: #fff; font-weight: 600; font-size: 0.85rem;
-    padding: 10px 20px; border-radius: 20px; opacity: 0; pointer-events: none;
-    transition: opacity 0.3s ease, transform 0.3s ease; z-index: 9999;
-    white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-  .toast.show {
-    opacity: 1; transform: translateX(-50%) translateY(0);
-  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Carmen's Weekly<br>Workout Checklist 👧🏻</h1>
+  <h1>Carmen's Weekly Workout Checklist 👧🏻</h1>
   <p>3 hours per week — tick off sessions as you go</p>
   <div class="streak-badge" id="streakBadge" style="display:none"></div>
 </header>
@@ -418,6 +397,18 @@
   </div>
 </div>
 
+<!-- Note modal -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal">
+    <h2>Session Note</h2>
+    <p class="modal-desc">Add an optional note — video name, how it felt, anything useful.</p>
+    <textarea class="note-input" id="noteInput" placeholder="e.g. Heather Robertson 30 min leg day — felt challenging"></textarea>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="modal-cancel" onclick="closeNoteModal(false)">Skip</button>
+      <button class="modal-confirm" onclick="closeNoteModal(true)">Save Note</button>
+    </div>
+  </div>
+</div>
 
 <!-- Guidance notes -->
 <div class="section">
@@ -549,6 +540,8 @@ function weekLabelFromId(weekId) {
 function defaultState() {
   const s = { weekId: getWeekId(), sessionDates: [] };
   CAT_META.forEach(c => { s[c.id] = []; });
+  // notes stored as { catId, index, text }
+  s.notes = [];
   return s;
 }
 
@@ -578,7 +571,7 @@ function archiveWeek(weekState) {
   if (!hasData) return;
   const history = loadHistory();
   if (history.some(h => h.weekId === weekState.weekId)) return;
-  const summary = { weekId: weekState.weekId, weekLabel: weekLabelFromId(weekState.weekId), categories: {} };
+  const summary = { weekId: weekState.weekId, weekLabel: weekLabelFromId(weekState.weekId), categories: {}, notes: weekState.notes || [] };
   let totalLogged = 0, totalTarget = 0;
   CATS.forEach(c => {
     const logged = (weekState[c.id] || []).reduce((a, b) => a + b, 0);
@@ -598,6 +591,7 @@ function loadState() {
       const parsed = JSON.parse(raw);
       if (parsed.weekId && parsed.weekId !== getWeekId()) archiveWeek(parsed);
       if (parsed.weekId === getWeekId()) {
+        if (!parsed.notes) parsed.notes = [];
         if (!parsed.sessionDates) parsed.sessionDates = [];
         return parsed;
       }
@@ -616,27 +610,7 @@ function saveState() {
 }
 
 /* ===== Core actions ===== */
-/* ===== Toast Messages ===== */
-const TOAST_MSGS = [
-  "I'm so proud of you!",
-  "Go, Carmencita, go!",
-  "Well done, qalbi, you're the best!",
-  "You're so strong!",
-  "You now deserve a burger!",
-  "You can have all the turron you want!",
-  "You're smelly now, but it's worth it.",
-  "Sweat is just fat crying."
-];
-let toastTimer = null;
-function showToast() {
-  const el = document.getElementById('toast');
-  const isFriday = new Date().getDay() === 5;
-  const msg = isFriday ? "It's the weekend! Wohoo!" : TOAST_MSGS[Math.floor(Math.random() * TOAST_MSGS.length)];
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
-}
+let pendingSession = null;
 
 function addSession(catId, mins) {
   if (!mins || mins <= 0 || mins > 120) return;
@@ -644,14 +618,37 @@ function addSession(catId, mins) {
   const today = new Date().toISOString().slice(0, 10);
   if (!state.sessionDates.includes(today)) state.sessionDates.push(today);
   saveState();
+
+  // Prompt for optional note
+  pendingSession = { catId, index: state[catId].length - 1 };
+  document.getElementById('noteInput').value = '';
+  document.getElementById('noteModal').classList.add('visible');
+}
+
+function closeNoteModal(save) {
+  if (save && pendingSession) {
+    const text = document.getElementById('noteInput').value.trim();
+    if (text) {
+      state.notes.push({ catId: pendingSession.catId, index: pendingSession.index, text });
+      saveState();
+    }
+  }
+  pendingSession = null;
+  document.getElementById('noteModal').classList.remove('visible');
   render();
-  showToast();
 }
 
 function removeSession(catId, index) {
   state[catId].splice(index, 1);
+  state.notes = state.notes.filter(n => !(n.catId === catId && n.index === index))
+    .map(n => { if (n.catId === catId && n.index > index) n.index--; return n; });
   saveState();
   render();
+}
+
+function getNoteForSession(catId, index) {
+  const n = state.notes.find(n => n.catId === catId && n.index === index);
+  return n ? n.text : null;
 }
 
 /* ===== Reset ===== */
@@ -865,7 +862,6 @@ function confirmSplit() {
   });
   if (anyAdded && !state.sessionDates.includes(today)) state.sessionDates.push(today);
   saveState(); render(); closeSplitModal();
-  if (anyAdded) showToast();
 }
 
 /* ===== Backup & Restore ===== */
@@ -896,6 +892,7 @@ function showImportField() {
   if (decoded.current && decoded.current.weekId) { state = decoded.current; if (decoded.history) saveHistory(decoded.history); if (decoded.targets) { targets = decoded.targets; saveTargets(); } }
   else if (decoded.weekId) { state = decoded; }
   else { showBackupStatus('Invalid backup code. Check and try again.', 'error'); return; }
+  if (!state.notes) state.notes = [];
   if (!state.sessionDates) state.sessionDates = [];
   saveState(); render(); renderHistory();
   showBackupStatus('Progress restored!', 'success'); importMode = false; textarea.classList.remove('visible');
@@ -1040,7 +1037,10 @@ function render() {
 
     let sessionsHTML = '';
     state[cat.id].forEach((mins, i) => {
-      sessionsHTML += `<span class="session-chip" onclick="removeSession('${cat.id}', ${i})">${mins} min <span class="remove">&times;</span></span>`;
+      const note = getNoteForSession(cat.id, i);
+      const noteDot = note ? '<span class="note-dot"></span>' : '';
+      const tooltip = note ? ` title="${note.replace(/"/g, '&quot;')}"` : '';
+      sessionsHTML += `<span class="session-chip"${tooltip} onclick="removeSession('${cat.id}', ${i})">${mins} min${noteDot} <span class="remove">&times;</span></span>`;
     });
 
     let durBtnsHTML = '';
@@ -1068,9 +1068,9 @@ function render() {
 /* ===== Init ===== */
 loadDarkMode();
 document.getElementById('splitModal').addEventListener('click', function(e) { if (e.target === this) closeSplitModal(); });
+document.getElementById('noteModal').addEventListener('click', function(e) { if (e.target === this) closeNoteModal(false); });
 render();
 </script>
 
-<div class="toast" id="toast"></div>
 </body>
 </html>
