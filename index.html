@@ -98,13 +98,14 @@
   .header-card {
     background: #ffffff; border: 1.5px solid var(--accent-light);
     border-radius: 16px; padding: 18px 20px 14px; margin-bottom: 4px;
-    text-align: center;
+    display: flex; justify-content: center;
   }
   body.dark .header-card { background: var(--card); border-color: var(--border); }
-  .header-title { display: flex; align-items: center; justify-content: center; gap: 12px; }
-  .header-icon { width: 58px; height: 58px; border-radius: 12px; object-fit: contain; }
-  header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; text-align: left; line-height: 1.25; }
-  .header-sub { font-size: 0.84rem; color: var(--text-muted); margin-top: 6px; }
+  .header-inner { display: flex; align-items: center; gap: 14px; }
+  .header-text { text-align: left; }
+  .header-icon { border-radius: 12px; object-fit: contain; width: 62px; height: 62px; flex-shrink: 0; }
+  header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; text-align: left; line-height: 1.25; margin: 0; }
+  .header-sub { font-size: 0.84rem; color: var(--text-muted); margin-top: 4px; text-align: left; }
 
   .streak-badge {
     display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;
@@ -474,11 +475,13 @@
 
 <header>
   <div class="header-card">
-    <div class="header-title">
+    <div class="header-inner">
       <img src="workout.png" alt="" class="header-icon">
-      <h1>Carmen's Weekly<br>Workout Checklist</h1>
+      <div class="header-text">
+        <h1>Carmen's Weekly<br>Workout Checklist</h1>
+        <p class="header-sub">3 hours per week. You got this.</p>
+      </div>
     </div>
-    <p class="header-sub">3 hours per week. You got this.</p>
   </div>
   <div class="streak-badge" id="streakBadge" style="display:none"></div>
 </header>
@@ -824,9 +827,15 @@ function saveState() {
 const TOAST_MSGS = [
   "I'm so proud of you!", "Go, Carmencita, go!",
   "Well done, qalbi, you're the best!", "You're so strong!",
-  "You now deserve a burger!", "You can have all the turron you want!",
+  "You now deserve a burger!", "You can have all the turrón you want!",
   "You're smelly now, but it's worth it.", "Sweat is just fat crying.",
-  "Mmmm look at that culito"
+  "Mmmm look at that culito",
+  "¡Vamos Rafa! 🇪🇸", "Andreita, ¡cómete el pollo!",
+  "Can you believe it? Another one down.",
+  "¿Cómo están las máquinas?",
+  "Time for a relaxing cup of café con leche in Plaza Mayor.",
+  "Pique, que te follo un pez.",
+  "Are you a vending machine? Cos you look like a snack."
 ];
 let toastTimer = null;
 
@@ -909,7 +918,13 @@ function renderStreak() {
     badge.textContent = `🔥 ${streak} week streak — ${msg}`;
   } else if (streak === 1) {
     badge.style.display = 'inline-flex';
-    badge.textContent = `🔥 Week started — let's go!`;
+    const CATS = getCategories();
+    const overallTarget = CATS.reduce((a, c) => a + c.target, 0);
+    const overallLogged = CATS.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
+    const pct = overallTarget > 0 ? Math.round((overallLogged / overallTarget) * 100) : 0;
+    if (pct >= 75) { badge.textContent = `🔥 Almost there — ${pct}% done this week!`; }
+    else if (pct >= 40) { badge.textContent = `🔥 Good progress — ${pct}% of this week's goal!`; }
+    else { badge.textContent = `🔥 This week is underway — keep going!`; }
   } else { badge.style.display = 'none'; }
 }
 
@@ -921,7 +936,8 @@ function renderSuggestion() {
   const labelEl = document.getElementById('suggestionLabel');
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon ...
-  const daysLeft = dayOfWeek === 0 ? 1 : 8 - dayOfWeek; // includes today
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const dayName = dayNames[dayOfWeek];
   const todayStr = now.toISOString().slice(0, 10);
 
   // Build category stats
@@ -962,17 +978,68 @@ function renderSuggestion() {
     }
   }
 
+  // Did Carmen already work out today?
+  const workedOutToday = todayDone.size > 0;
+
+  // Days left: if already worked out today, don't count today as an available day
+  const rawDaysLeft = dayOfWeek === 0 ? 1 : 8 - dayOfWeek; // includes today
+  const daysLeft = workedOutToday ? Math.max(1, rawDaysLeft - 1) : rawDaysLeft;
+
   // Count unique categories logged this week
   const catsUsed = new Set(CATS.filter(c => state[c.id].length > 0).map(c => c.id));
 
   // Build suggestion
   let suggestion = '';
-  let label = 'Suggested today';
+  let label = `Happy ${dayName}`;
+
+  // --- RULE 0: No sessions at all this week (fresh start) ---
+  if (overallLogged === 0) {
+    label = `Happy ${dayName}`;
+    const starters = [
+      `A fresh week is waiting. Pick any category below and start with a short session — even 15 minutes counts.`,
+      `New week, new energy. Tap any workout type below to log your first session and get the ball rolling.`,
+      `The week is yours, Carmen. Start wherever feels good — every minute gets you closer to your 3-hour goal.`
+    ];
+    suggestion = starters[Math.floor(Math.random() * starters.length)];
+    labelEl.textContent = label;
+    textEl.innerHTML = suggestion;
+    el.classList.add('visible');
+    return;
+  }
+
+  // --- RULE 0.5: Already worked out today — shift to forward-looking ---
+  if (workedOutToday && totalRemaining > 0) {
+    // Check if this was a significant session or there's still a lot left
+    const todayCats = [...todayDone].map(id => CATS.find(c => c.id === id)).filter(Boolean);
+    const todayCatNames = todayCats.map(c => `${c.icon} ${c.name}`).join(' and ');
+
+    // If close to goal, celebrate the progress
+    if (totalRemaining <= 30) {
+      label = `Great ${dayName}`;
+      suggestion = `Nice work on <strong>${todayCatNames}</strong> today! Just <strong>${totalRemaining} min</strong> left for the week — you're almost there.`;
+      labelEl.textContent = label;
+      textEl.innerHTML = suggestion;
+      el.classList.add('visible');
+      return;
+    }
+
+    // Otherwise, acknowledge today and look ahead
+    if (daysLeft >= 1) {
+      const dailyNeeded = Math.ceil(totalRemaining / daysLeft);
+      const pick = gaps.length > 0 ? gaps[0] : null;
+      const pickHint = pick ? ` <strong>${pick.icon} ${pick.name}</strong> could use the most attention next.` : '';
+      label = `Nice one today`;
+      suggestion = `Today's session is done. <strong>${totalRemaining} min</strong> left across ${daysLeft} more day${daysLeft > 1 ? 's' : ''} — about ${dailyNeeded} min/day.${pickHint}`;
+      labelEl.textContent = label;
+      textEl.innerHTML = suggestion;
+      el.classList.add('visible');
+      return;
+    }
+  }
 
   // --- RULE 1: Weekend finisher (Saturday/Sunday, close to total goal) ---
   if ((dayOfWeek === 6 || dayOfWeek === 0) && totalRemaining > 0 && totalRemaining <= 60) {
     label = 'Weekend finisher';
-    // Suggest the most behind category to work on, but frame it around the total goal
     const pick = gaps[0];
     if (totalRemaining <= 30) {
       suggestion = `Just <strong>${totalRemaining} min</strong> to hit your 3-hour goal! A <strong>${pick.icon} ${pick.name}</strong> session would do it. You've got this!`;
@@ -982,7 +1049,7 @@ function renderSuggestion() {
   }
 
   // --- RULE 2: Recovery day (heavy session done yesterday) ---
-  else if (!suggestion) {
+  if (!suggestion) {
     const heavyYesterday = HEAVY_CATS.filter(id => yesterdayDone.has(id));
     const lightGaps = gaps.filter(g => LIGHT_CATS.includes(g.id));
     if (heavyYesterday.length > 0 && lightGaps.length > 0) {
@@ -1032,7 +1099,7 @@ function renderSuggestion() {
   }
 
   // --- RULE 6: End-of-week urgency (Fri-Sun with lots remaining) ---
-  if (!suggestion && daysLeft >= 1 && daysLeft <= 3 && totalRemaining > 30) {
+  if (!suggestion && rawDaysLeft >= 1 && rawDaysLeft <= 3 && totalRemaining > 30) {
     label = 'Time check';
     const dailyNeeded = Math.ceil(totalRemaining / daysLeft);
     const pick = gaps.length > 0 ? gaps[0] : null;
