@@ -16,7 +16,7 @@
 
 <!-- Social preview -->
 <meta property="og:title" content="Carmen's Weekly Workout Checklist">
-<meta property="og:description" content="3 hours per week — tick off sessions as you go">
+<meta property="og:description" content="3 hours per week. You got this.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,7 +102,7 @@
   }
   body.dark .header-card { background: var(--card); border-color: var(--border); }
   .header-title { display: flex; align-items: center; justify-content: center; gap: 12px; }
-  .header-icon { width: 44px; height: 44px; border-radius: 10px; object-fit: contain; }
+  .header-icon { width: 58px; height: 58px; border-radius: 12px; object-fit: contain; }
   header h1 { font-family: 'Fraunces', Georgia, serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; text-align: left; line-height: 1.25; }
   .header-sub { font-size: 0.84rem; color: var(--text-muted); margin-top: 6px; }
 
@@ -114,17 +114,24 @@
 
   /* Controls row */
   .controls { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; }
+  .week-nav { display: flex; align-items: center; gap: 6px; }
   .week-label { font-family: 'Fraunces', Georgia, serif; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
-  .controls-right { display: flex; gap: 6px; align-items: center; }
-
-  .ctrl-btn {
+  .week-label .current-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 6px; vertical-align: middle; }
+  .week-arrow {
     background: none; border: 1px solid var(--border); color: var(--text-muted);
-    font-size: 0.8rem; font-weight: 500; padding: 6px 14px; border-radius: 8px;
-    cursor: pointer; transition: all 0.2s;
+    width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
-  .ctrl-btn:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-  .ctrl-btn.reset:hover { background: #fee; border-color: #c66; color: #c33; }
-  .ctrl-btn.reset.confirming { background: #c33; border-color: #c33; color: white; animation: pulse 1s infinite; }
+  .week-arrow:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .week-arrow:disabled { opacity: 0.25; cursor: default; pointer-events: none; }
+  .week-arrow svg { width: 16px; height: 16px; }
+  .viewing-past-banner {
+    font-size: 0.75rem; color: var(--accent); font-weight: 600; text-align: center;
+    padding: 6px 12px; background: var(--accent-light); border-radius: 8px; margin-bottom: 12px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .viewing-past-banner:hover { background: var(--border); }
 
   .dark-toggle {
     background: none; border: 1px solid var(--border); color: var(--text-muted);
@@ -133,15 +140,13 @@
   }
   .dark-toggle:hover { background: var(--accent-light); border-color: var(--accent); }
 
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
-
   /* Smart suggestion */
   .suggestion {
     background: var(--accent-light); border: 1px solid var(--accent);
     border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: none;
   }
   .suggestion.visible { display: block; }
-  .suggestion-label { font-family: 'Fraunces', Georgia, serif; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 4px; }
+  .suggestion-label { font-family: 'Fraunces', Georgia, serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; color: var(--accent); margin-bottom: 4px; }
   .suggestion-text { font-size: 0.85rem; font-weight: 500; color: var(--text); line-height: 1.5; }
 
   /* Rest day indicator */
@@ -158,7 +163,7 @@
     margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border);
   }
   .overall-progress .label-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-  .overall-progress .label-row span:first-child { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 0.95rem; }
+  .overall-progress .label-row span:first-child { font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.25rem; color: var(--accent); }
   .overall-progress .label-row .time-display { font-family: 'Fraunces', Georgia, serif; font-size: 1.25rem; font-weight: 700; color: var(--accent); }
 
   .progress-bar-outer { width: 100%; height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; }
@@ -473,18 +478,20 @@
       <img src="workout.png" alt="" class="header-icon">
       <h1>Carmen's Weekly<br>Workout Checklist</h1>
     </div>
-    <p class="header-sub">3 hours per week — tick off sessions as you go</p>
+    <p class="header-sub">3 hours per week. You got this.</p>
   </div>
   <div class="streak-badge" id="streakBadge" style="display:none"></div>
 </header>
 
 <div class="controls">
-  <span class="week-label" id="weekLabel"></span>
-  <div class="controls-right">
-    <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
-    <button class="ctrl-btn reset" onclick="resetWeek()">New Week</button>
+  <div class="week-nav">
+    <button class="week-arrow" id="weekPrev" onclick="navigateWeek(-1)" title="Previous week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <span class="week-label" id="weekLabel"></span>
+    <button class="week-arrow" id="weekNext" onclick="navigateWeek(1)" title="Next week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
   </div>
+  <button class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
 </div>
+<div class="viewing-past-banner" id="pastBanner" style="display:none" onclick="navigateWeek(0, true)">Viewing a past week. Tap to return to this week.</div>
 
 <div class="suggestion" id="suggestion">
   <div class="suggestion-label" id="suggestionLabel">Suggested today</div>
@@ -509,8 +516,8 @@
 
 <div class="celebration" id="celebration">
   <div class="confetti-container" id="confettiContainer"></div>
-  <div class="celebration-text">Week complete — well done, Carmen!</div>
-  <div class="celebration-sub">All categories hit their targets this week</div>
+  <div class="celebration-text">3 hours done — well done, Carmen!</div>
+  <div class="celebration-sub">You've hit your weekly goal. Amazing work!</div>
 </div>
 
 <button class="split-btn" onclick="openSplitModal()">
@@ -653,6 +660,7 @@ let targets = loadTargets();
 function getCategories() { return CAT_META.map(c => ({ ...c, target: targets[c.id] })); }
 const QUICK_DURATIONS = [15, 20, 25, 30, 45];
 let state = loadState();
+let weekOffset = 0; // 0 = current week, -1 = last week, etc.
 
 /* ===== Navigation ===== */
 function switchView(viewId) {
@@ -694,6 +702,42 @@ function getWeekLabel() {
   const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
   const opts = { month: 'short', day: 'numeric' };
   return `Week of ${monday.toLocaleDateString('en-GB', opts)} – ${sunday.toLocaleDateString('en-GB', opts)}`;
+}
+
+function getWeekIdForOffset(offset) {
+  const now = new Date();
+  const target = new Date(now);
+  target.setDate(target.getDate() + offset * 7);
+  const iw = getISOWeek(target);
+  return `${iw.year}-W${String(iw.week).padStart(2, '0')}`;
+}
+
+function getWeekLabelForOffset(offset) {
+  const now = new Date();
+  const target = new Date(now);
+  target.setDate(target.getDate() + offset * 7);
+  const iw = getISOWeek(target);
+  const monday = getMondayOfISOWeek(iw.year, iw.week);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  const opts = { month: 'short', day: 'numeric' };
+  return `Week of ${monday.toLocaleDateString('en-GB', opts)} – ${sunday.toLocaleDateString('en-GB', opts)}`;
+}
+
+function navigateWeek(direction, reset) {
+  if (reset) { weekOffset = 0; render(); return; }
+  const newOffset = weekOffset + direction;
+  // Don't allow navigating into the future
+  if (newOffset > 0) return;
+  // Don't allow navigating further back than available history
+  const history = loadHistory();
+  if (newOffset < 0) {
+    if (history.length === 0) return;
+    const oldestWeekId = history[history.length - 1].weekId;
+    const targetWeekId = getWeekIdForOffset(newOffset);
+    if (targetWeekId < oldestWeekId) return;
+  }
+  weekOffset = newOffset;
+  render();
 }
 
 function weekLabelFromId(weekId) {
@@ -822,19 +866,6 @@ function removeSession(catId, index) {
   saveState(); render();
 }
 
-/* ===== Reset ===== */
-let resetPending = false, resetTimer = null;
-function resetWeek() {
-  const btn = document.querySelector('.ctrl-btn.reset');
-  if (!resetPending) {
-    resetPending = true; btn.textContent = 'Tap again to confirm'; btn.classList.add('confirming');
-    resetTimer = setTimeout(() => { resetPending = false; btn.classList.remove('confirming'); btn.textContent = 'New Week'; }, 3000);
-    return;
-  }
-  clearTimeout(resetTimer); resetPending = false; btn.classList.remove('confirming'); btn.textContent = 'New Week';
-  archiveWeek(state); state = defaultState(); saveState(); render();
-}
-
 /* ===== Dark mode ===== */
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle('dark');
@@ -899,10 +930,14 @@ function renderSuggestion() {
     return { ...c, logged, remaining: Math.max(0, c.target - logged), pct: c.target > 0 ? logged / c.target : 1 };
   });
   const gaps = stats.filter(c => c.remaining > 0).sort((a, b) => a.pct - b.pct);
-  const totalRemaining = gaps.reduce((a, g) => a + g.remaining, 0);
 
-  // All targets met
-  if (gaps.length === 0) { el.classList.remove('visible'); return; }
+  // Total remaining is based on the overall weekly target, not individual category gaps
+  const overallTarget = CATS.reduce((a, c) => a + c.target, 0);
+  const overallLogged = CATS.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
+  const totalRemaining = Math.max(0, overallTarget - overallLogged);
+
+  // Weekly goal met
+  if (totalRemaining === 0) { el.classList.remove('visible'); return; }
 
   // Figure out what was done today and yesterday for recovery logic
   const todayDone = new Set();
@@ -934,14 +969,15 @@ function renderSuggestion() {
   let suggestion = '';
   let label = 'Suggested today';
 
-  // --- RULE 1: Weekend finisher (Saturday/Sunday, close to target) ---
+  // --- RULE 1: Weekend finisher (Saturday/Sunday, close to total goal) ---
   if ((dayOfWeek === 6 || dayOfWeek === 0) && totalRemaining > 0 && totalRemaining <= 60) {
     label = 'Weekend finisher';
-    const topGaps = gaps.slice(0, 2);
-    if (topGaps.length === 1) {
-      suggestion = `Just <strong>${topGaps[0].remaining} min of ${topGaps[0].icon} ${topGaps[0].name}</strong> to close out the week. You've got this!`;
+    // Suggest the most behind category to work on, but frame it around the total goal
+    const pick = gaps[0];
+    if (totalRemaining <= 30) {
+      suggestion = `Just <strong>${totalRemaining} min</strong> to hit your 3-hour goal! A <strong>${pick.icon} ${pick.name}</strong> session would do it. You've got this!`;
     } else {
-      suggestion = `A <strong>${topGaps[0].remaining}-min ${topGaps[0].icon} ${topGaps[0].name}</strong> and <strong>${topGaps[1].remaining}-min ${topGaps[1].icon} ${topGaps[1].name}</strong> session would finish the week. So close!`;
+      suggestion = `<strong>${totalRemaining} min</strong> left to hit your 3-hour goal. Try <strong>${pick.icon} ${pick.name}</strong> today — it could use the most attention. So close!`;
     }
   }
 
@@ -984,15 +1020,14 @@ function renderSuggestion() {
 
   // --- RULE 5: Midweek pacing (Wed-Thu, falling behind) ---
   if (!suggestion && (dayOfWeek === 3 || dayOfWeek === 4)) {
-    const CATS_ALL = getCategories();
-    const totalTarget = CATS_ALL.reduce((a, c) => a + c.target, 0);
-    const totalLogged = CATS_ALL.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
     const expectedPct = (dayOfWeek / 7) * 100;
-    const actualPct = totalTarget > 0 ? (totalLogged / totalTarget) * 100 : 0;
+    const actualPct = overallTarget > 0 ? (overallLogged / overallTarget) * 100 : 0;
     if (actualPct < expectedPct - 15) {
       label = 'Midweek check-in';
       const dailyNeeded = daysLeft > 0 ? Math.ceil(totalRemaining / daysLeft) : totalRemaining;
-      suggestion = `You're at <strong>${Math.round(actualPct)}%</strong> — about <strong>${dailyNeeded} min/day</strong> for the rest of the week will get you there. <strong>${gaps[0].icon} ${gaps[0].name}</strong> needs the most attention.`;
+      const pick = gaps.length > 0 ? gaps[0] : null;
+      const pickHint = pick ? ` <strong>${pick.icon} ${pick.name}</strong> could use some attention.` : '';
+      suggestion = `You're at <strong>${Math.round(actualPct)}%</strong> of your 3-hour goal — about <strong>${dailyNeeded} min/day</strong> for the rest of the week will get you there.${pickHint}`;
     }
   }
 
@@ -1000,7 +1035,9 @@ function renderSuggestion() {
   if (!suggestion && daysLeft >= 1 && daysLeft <= 3 && totalRemaining > 30) {
     label = 'Time check';
     const dailyNeeded = Math.ceil(totalRemaining / daysLeft);
-    suggestion = `<strong>${totalRemaining} min</strong> left across ${daysLeft} day${daysLeft > 1 ? 's' : ''} (about ${dailyNeeded} min/day). Focus on <strong>${gaps[0].icon} ${gaps[0].name}</strong> — it's the furthest behind.`;
+    const pick = gaps.length > 0 ? gaps[0] : null;
+    const pickHint = pick ? ` <strong>${pick.icon} ${pick.name}</strong> could use the most attention.` : '';
+    suggestion = `<strong>${totalRemaining} min</strong> to go for your 3-hour goal — about ${dailyNeeded} min/day across ${daysLeft} day${daysLeft > 1 ? 's' : ''}.${pickHint}`;
   }
 
   // --- RULE 7: Haven't started two categories ---
@@ -1456,10 +1493,47 @@ function saveVideoEdit(index) {
 /* ===== Main render ===== */
 function render() {
   const CATS = getCategories();
-  document.getElementById('weekLabel').textContent = getWeekLabel();
+  const viewingPast = weekOffset < 0;
+
+  // Week label and navigation arrows
+  document.getElementById('weekLabel').textContent = viewingPast ? getWeekLabelForOffset(weekOffset) : getWeekLabel();
+
+  // Arrow enable/disable
+  const history = loadHistory();
+  const prevBtn = document.getElementById('weekPrev');
+  const nextBtn = document.getElementById('weekNext');
+  nextBtn.disabled = weekOffset >= 0;
+  // Disable left arrow if no older weeks exist in history
+  if (history.length === 0) {
+    prevBtn.disabled = true;
+  } else {
+    const oldestWeekId = history[history.length - 1].weekId;
+    const oneBackId = getWeekIdForOffset(weekOffset - 1);
+    prevBtn.disabled = oneBackId < oldestWeekId;
+  }
+
+  // Past week banner
+  document.getElementById('pastBanner').style.display = viewingPast ? 'block' : 'none';
+
+  // Determine data source: current state or history archive
+  let viewState, viewTimestamps;
+  if (viewingPast) {
+    const targetWeekId = getWeekIdForOffset(weekOffset);
+    const entry = history.find(h => h.weekId === targetWeekId);
+    viewState = {};
+    viewTimestamps = {};
+    CATS.forEach(c => {
+      viewState[c.id] = entry && entry.categories[c.id] ? entry.categories[c.id].sessions : [];
+      viewTimestamps[c.id] = entry && entry.categories[c.id] && entry.categories[c.id].timestamps
+        ? entry.categories[c.id].timestamps.map(t => t.ts || null) : [];
+    });
+  } else {
+    viewState = state;
+    viewTimestamps = state.sessionTimestamps || {};
+  }
 
   let totalLogged = 0, totalTarget = 0;
-  CATS.forEach(c => { totalTarget += c.target; totalLogged += state[c.id].reduce((a, b) => a + b, 0); });
+  CATS.forEach(c => { totalTarget += c.target; totalLogged += (viewState[c.id] || []).reduce((a, b) => a + b, 0); });
   document.getElementById('totalTime').textContent = `${totalLogged} / ${totalTarget} min`;
   const totalPct = Math.min(100, totalTarget > 0 ? (totalLogged / totalTarget) * 100 : 0);
   const totalBar = document.getElementById('totalBar');
@@ -1468,38 +1542,57 @@ function render() {
 
   const remaining = Math.max(0, totalTarget - totalLogged);
   const remainHrs = (remaining / 60).toFixed(1);
-  document.getElementById('totalRemaining').textContent = remaining > 0 ? `${remaining} min (${remainHrs} hrs) left this week` : 'Target reached!';
+  if (viewingPast) {
+    document.getElementById('totalRemaining').textContent = remaining > 0 ? `${totalLogged} min logged (${remaining} min short of goal)` : 'Target reached!';
+  } else {
+    document.getElementById('totalRemaining').textContent = remaining > 0 ? `${remaining} min (${remainHrs} hrs) left this week` : 'Target reached!';
+  }
   document.getElementById('totalPctLabel').textContent = `${Math.round(totalPct)}%`;
   document.getElementById('progressSub').className = 'progress-sub' + (remaining === 0 ? ' done' : '');
 
-  const allDone = CATS.every(c => state[c.id].reduce((a,b) => a+b, 0) >= c.target);
-  document.getElementById('celebration').className = 'celebration' + (allDone ? ' visible' : '');
-  if (allDone && !celebrationShown) { celebrationShown = true; setTimeout(() => launchConfetti(), 100); }
-  if (!allDone) celebrationShown = false;
+  const goalReached = totalLogged >= totalTarget;
+  document.getElementById('celebration').className = 'celebration' + (goalReached && !viewingPast ? ' visible' : '');
+  if (goalReached && !celebrationShown && !viewingPast) { celebrationShown = true; setTimeout(() => launchConfetti(), 100); }
+  if (!goalReached) celebrationShown = false;
+
+  // Hide/show interactive elements based on whether viewing past
+  document.getElementById('suggestion').style.display = viewingPast ? 'none' : '';
+  document.getElementById('restIndicator').style.display = viewingPast ? 'none' : '';
+  document.querySelector('.split-btn').style.display = viewingPast ? 'none' : '';
 
   const container = document.getElementById('categories');
   container.innerHTML = '';
   CATS.forEach(cat => {
-    const logged = state[cat.id].reduce((a, b) => a + b, 0);
+    const catSessions = viewState[cat.id] || [];
+    const catTimestamps = viewTimestamps[cat.id] || [];
+    const logged = catSessions.reduce((a, b) => a + b, 0);
     const pct = Math.min(100, cat.target > 0 ? (logged / cat.target) * 100 : 0);
     const isDone = logged >= cat.target;
     const div = document.createElement('div');
     div.className = 'category' + (isDone ? ' done' : '');
 
     let sessionsHTML = '';
-    state[cat.id].forEach((mins, i) => {
+    catSessions.forEach((mins, i) => {
       let timeLabel = '';
-      if (state.sessionTimestamps && state.sessionTimestamps[cat.id] && state.sessionTimestamps[cat.id][i]) {
-        const ts = new Date(state.sessionTimestamps[cat.id][i]);
+      if (catTimestamps[i]) {
+        const ts = new Date(catTimestamps[i]);
         const h = ts.getHours();
         const m = String(ts.getMinutes()).padStart(2, '0');
         timeLabel = `<span class="chip-time">${h}:${m}</span>`;
       }
-      sessionsHTML += `<span class="session-chip" onclick="removeSession('${cat.id}', ${i})">${mins} min${timeLabel} <span class="remove">&times;</span></span>`;
+      if (viewingPast) {
+        sessionsHTML += `<span class="session-chip">${mins} min${timeLabel}</span>`;
+      } else {
+        sessionsHTML += `<span class="session-chip" onclick="removeSession('${cat.id}', ${i})">${mins} min${timeLabel} <span class="remove">&times;</span></span>`;
+      }
     });
 
-    let durBtnsHTML = '';
-    QUICK_DURATIONS.forEach(d => { durBtnsHTML += `<button class="duration-btn" onclick="addSession('${cat.id}', ${d})">+${d}</button>`; });
+    let addSessionHTML = '';
+    if (!viewingPast) {
+      let durBtnsHTML = '';
+      QUICK_DURATIONS.forEach(d => { durBtnsHTML += `<button class="duration-btn" onclick="addSession('${cat.id}', ${d})">+${d}</button>`; });
+      addSessionHTML = `<div class="add-session"><div class="duration-btns">${durBtnsHTML}<div class="duration-btn custom-input-wrap"><input type="number" placeholder="#" min="1" max="120" onkeydown="handleCustomKey(event, '${cat.id}')"><span>min</span></div></div></div>`;
+    }
 
     div.innerHTML = `
       <div class="category-header">
@@ -1511,13 +1604,12 @@ function render() {
         <div class="category-time">${logged} / ${cat.target}</div>
       </div>
       <div class="sessions">${sessionsHTML || '<span style="font-size:0.75rem;color:var(--text-muted)">No sessions logged yet</span>'}</div>
-      <div class="add-session"><div class="duration-btns">${durBtnsHTML}<div class="duration-btn custom-input-wrap"><input type="number" placeholder="#" min="1" max="120" onkeydown="handleCustomKey(event, '${cat.id}')"><span>min</span></div></div></div>`;
+      ${addSessionHTML}`;
     container.appendChild(div);
   });
 
   renderStreak();
-  renderSuggestion();
-  renderRestIndicator();
+  if (!viewingPast) { renderSuggestion(); renderRestIndicator(); }
 }
 
 /* ===== Init ===== */
