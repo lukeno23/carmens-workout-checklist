@@ -890,7 +890,7 @@ function renderSuggestion() {
   const labelEl = document.getElementById('suggestionLabel');
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon ...
-  const daysLeft = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+  const daysLeft = dayOfWeek === 0 ? 1 : 8 - dayOfWeek; // includes today
   const todayStr = now.toISOString().slice(0, 10);
 
   // Build category stats
@@ -996,8 +996,8 @@ function renderSuggestion() {
     }
   }
 
-  // --- RULE 6: End-of-week urgency (Fri-Sat with lots remaining) ---
-  if (!suggestion && daysLeft > 0 && daysLeft <= 2 && totalRemaining > 30) {
+  // --- RULE 6: End-of-week urgency (Fri-Sun with lots remaining) ---
+  if (!suggestion && daysLeft >= 1 && daysLeft <= 3 && totalRemaining > 30) {
     label = 'Time check';
     const dailyNeeded = Math.ceil(totalRemaining / daysLeft);
     suggestion = `<strong>${totalRemaining} min</strong> left across ${daysLeft} day${daysLeft > 1 ? 's' : ''} (about ${dailyNeeded} min/day). Focus on <strong>${gaps[0].icon} ${gaps[0].name}</strong> — it's the furthest behind.`;
