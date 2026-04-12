@@ -341,6 +341,46 @@
   .time-insight { font-size: 0.78rem; color: var(--text-muted); padding: 8px 12px; background: var(--accent-light); border-radius: 8px; margin-bottom: 12px; }
   .time-insight strong { color: var(--accent); }
 
+  /* Comparison chart */
+  .comparison-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 12px; margin-bottom: 16px; }
+  .comparison-title { font-family: 'Fraunces', Georgia, serif; font-size: 0.88rem; font-weight: 700; margin-bottom: 14px; }
+  .comparison-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; position: relative; padding-bottom: 22px; }
+  .comparison-chart-area { display: flex; align-items: flex-end; gap: 6px; flex: 1; height: 100%; position: relative; }
+  .chart-goal-line {
+    position: absolute; left: 0; right: 0; border-top: 2px dashed var(--green); z-index: 1; pointer-events: none;
+  }
+  .chart-goal-label { position: absolute; right: 0; top: -14px; font-size: 0.6rem; color: var(--green); font-weight: 600; }
+  .chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; position: relative; z-index: 2; }
+  .chart-bar-wrap { width: 100%; flex: 1; display: flex; align-items: flex-end; justify-content: center; }
+  .chart-bar {
+    width: 100%; max-width: 40px; border-radius: 6px 6px 2px 2px; background: var(--accent-light);
+    transition: height 0.4s ease; position: relative; min-height: 3px;
+  }
+  .chart-bar.hit { background: var(--green-light); }
+  .chart-bar.current { background: var(--accent); opacity: 0.85; }
+  .chart-bar.current.hit { background: var(--green); opacity: 0.85; }
+  .chart-bar-value {
+    position: absolute; top: -16px; left: 50%; transform: translateX(-50%);
+    font-size: 0.6rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;
+  }
+  .chart-bar.hit .chart-bar-value { color: var(--green); }
+  .chart-bar.current .chart-bar-value { color: var(--accent); }
+  .chart-bar.current.hit .chart-bar-value { color: var(--green); }
+  .chart-label { font-size: 0.58rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; text-align: center; }
+  .chart-label.current { color: var(--accent); font-weight: 700; }
+
+  /* Monthly comparison */
+  .monthly-comparison { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .monthly-comp-title { font-family: 'Fraunces', Georgia, serif; font-size: 0.88rem; font-weight: 700; margin-bottom: 12px; }
+  .monthly-comp-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .monthly-comp-row:last-child { border-bottom: none; }
+  .monthly-comp-label { font-size: 0.8rem; font-weight: 600; min-width: 70px; }
+  .monthly-comp-bar-outer { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .monthly-comp-bar-inner { height: 100%; border-radius: 4px; background: var(--accent); transition: width 0.4s; }
+  .monthly-comp-bar-inner.hit { background: var(--green); }
+  .monthly-comp-stats { font-size: 0.7rem; color: var(--text-muted); min-width: 90px; text-align: right; }
+  .monthly-comp-stats strong { color: var(--text); }
+
   /* Settings view */
   .settings-section { background: var(--card); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
   .settings-section-title { font-family: 'Fraunces', Georgia, serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
@@ -537,6 +577,8 @@
 <!-- ==================== VIEW: HISTORY ==================== -->
 <div class="view" id="viewHistory">
   <div class="view-header">Week History</div>
+  <div id="comparisonChart"></div>
+  <div id="monthlyComparison"></div>
   <div class="history-tabs">
     <button class="history-tab active" id="tabWeekly" onclick="switchHistoryTab('weekly')">Weekly</button>
     <button class="history-tab" id="tabMonthly" onclick="switchHistoryTab('monthly')">Monthly</button>
@@ -672,7 +714,7 @@ function switchView(viewId) {
   document.getElementById(viewId).classList.add('active');
   document.querySelector(`.nav-tab[data-view="${viewId}"]`).classList.add('active');
   window.scrollTo(0, 0);
-  if (viewId === 'viewHistory') { renderHistory(); renderMonthly(); }
+  if (viewId === 'viewHistory') { renderComparisonChart(); renderMonthlyComparison(); renderHistory(); renderMonthly(); }
   if (viewId === 'viewSettings') renderSettings();
 }
 
@@ -922,8 +964,9 @@ function renderStreak() {
     const CATS = getCategories();
     const overallTarget = CATS.reduce((a, c) => a + c.target, 0);
     const overallLogged = CATS.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
-    const pct = overallTarget > 0 ? Math.round((overallLogged / overallTarget) * 100) : 0;
-    if (pct >= 75) { badge.textContent = `🔥 Almost there — ${pct}% done this week!`; }
+    const pct = overallTarget > 0 ? Math.min(100, Math.round((overallLogged / overallTarget) * 100)) : 0;
+    if (overallLogged >= overallTarget) { badge.textContent = `🔥 3-hour goal smashed this week! Well done, Carmen!`; }
+    else if (pct >= 75) { badge.textContent = `🔥 Almost there — ${pct}% done this week!`; }
     else if (pct >= 40) { badge.textContent = `🔥 Good progress — ${pct}% of this week's goal!`; }
     else { badge.textContent = `🔥 This week is underway — keep going!`; }
   } else { badge.style.display = 'none'; }
@@ -1260,6 +1303,137 @@ function showBackupStatus(msg, type) {
   const el = document.getElementById('backupStatus');
   el.textContent = msg; el.className = 'backup-status' + (type ? ' ' + type : '');
   if (type) setTimeout(() => { el.textContent = ''; el.className = 'backup-status'; }, 4000);
+}
+
+/* ===== Comparison chart (last 6 weeks) ===== */
+function renderComparisonChart() {
+  const container = document.getElementById('comparisonChart');
+  const hist = loadHistory();
+  const CATS = getCategories();
+  const overallTarget = CATS.reduce((a, c) => a + c.target, 0);
+
+  // Build data: current week + up to 5 past weeks = 6 total
+  const weeks = [];
+
+  // Current week (live)
+  const currentLogged = CATS.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
+  const currentIW = getISOWeek(new Date());
+  const currentMonday = getMondayOfISOWeek(currentIW.year, currentIW.week);
+  const opts = { day: 'numeric', month: 'short' };
+  weeks.push({
+    label: currentMonday.toLocaleDateString('en-GB', opts),
+    logged: currentLogged,
+    target: overallTarget,
+    current: true
+  });
+
+  // Past weeks from history (most recent first, take up to 5)
+  const pastWeeks = hist.slice(0, 5);
+  pastWeeks.forEach(w => {
+    const match = w.weekId.match(/(\d{4})-W(\d+)/);
+    if (!match) return;
+    const monday = getMondayOfISOWeek(parseInt(match[1]), parseInt(match[2]));
+    weeks.push({
+      label: monday.toLocaleDateString('en-GB', opts),
+      logged: w.totalLogged,
+      target: w.totalTarget || overallTarget,
+      current: false
+    });
+  });
+
+  // Reverse so oldest is on the left
+  weeks.reverse();
+
+  if (weeks.length < 2) { container.innerHTML = ''; return; }
+
+  // Find max for scaling
+  const maxVal = Math.max(overallTarget, ...weeks.map(w => w.logged));
+  const goalPct = (overallTarget / maxVal) * 100;
+
+  let barsHTML = '';
+  weeks.forEach(w => {
+    const heightPct = maxVal > 0 ? Math.max(2, (w.logged / maxVal) * 100) : 2;
+    const hitGoal = w.logged >= w.target;
+    const cls = (w.current ? ' current' : '') + (hitGoal ? ' hit' : '');
+    const mins = w.logged;
+    const valLabel = mins >= 60 ? `${Math.floor(mins/60)}h${mins%60 > 0 ? mins%60 + 'm' : ''}` : `${mins}m`;
+    barsHTML += `<div class="chart-col">
+      <div class="chart-bar-wrap"><div class="chart-bar${cls}" style="height:${heightPct}%"><span class="chart-bar-value">${valLabel}</span></div></div>
+      <div class="chart-label${w.current ? ' current' : ''}">${w.current ? 'Now' : w.label}</div>
+    </div>`;
+  });
+
+  container.innerHTML = `<div class="comparison-section">
+    <div class="comparison-title">Weekly overview</div>
+    <div class="comparison-chart">
+      <div class="comparison-chart-area">
+        <div class="chart-goal-line" style="bottom:calc(${goalPct}% + 22px)"><span class="chart-goal-label">3hr goal</span></div>
+        ${barsHTML}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ===== Monthly comparison ===== */
+function renderMonthlyComparison() {
+  const container = document.getElementById('monthlyComparison');
+  const hist = loadHistory();
+  const CATS = getCategories();
+  const overallTarget = CATS.reduce((a, c) => a + c.target, 0);
+
+  // Group weeks into months (include current week)
+  const months = {};
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Current week
+  const currentLogged = CATS.reduce((a, c) => a + state[c.id].reduce((s, v) => s + v, 0), 0);
+  const currentIW = getISOWeek(new Date());
+  const currentMonday = getMondayOfISOWeek(currentIW.year, currentIW.week);
+  const currentKey = `${currentMonday.getFullYear()}-${String(currentMonday.getMonth() + 1).padStart(2, '0')}`;
+  months[currentKey] = { logged: currentLogged, weekCount: 1, goalsHit: currentLogged >= overallTarget ? 1 : 0, target: overallTarget };
+
+  // Past weeks
+  hist.forEach(w => {
+    const match = w.weekId.match(/(\d{4})-W(\d+)/);
+    if (!match) return;
+    const monday = getMondayOfISOWeek(parseInt(match[1]), parseInt(match[2]));
+    const key = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}`;
+    if (!months[key]) months[key] = { logged: 0, weekCount: 0, goalsHit: 0, target: w.totalTarget || overallTarget };
+    months[key].logged += w.totalLogged;
+    months[key].weekCount++;
+    if (w.totalLogged >= (w.totalTarget || overallTarget)) months[key].goalsHit++;
+  });
+
+  const sortedKeys = Object.keys(months).sort().reverse().slice(0, 4); // Last 4 months
+
+  if (sortedKeys.length < 2) { container.innerHTML = ''; return; }
+
+  // Find max monthly total for scaling
+  const maxLogged = Math.max(...sortedKeys.map(k => months[k].logged));
+
+  let rowsHTML = '';
+  sortedKeys.forEach(key => {
+    const m = months[key];
+    const [year, mon] = key.split('-');
+    const label = `${monthNames[parseInt(mon) - 1]} ${year.slice(2)}`;
+    const barPct = maxLogged > 0 ? Math.max(2, (m.logged / maxLogged) * 100) : 2;
+    const avgPerWeek = m.weekCount > 0 ? Math.round(m.logged / m.weekCount) : 0;
+    const hours = Math.floor(m.logged / 60);
+    const mins = m.logged % 60;
+    const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    const hitRate = `${m.goalsHit}/${m.weekCount} weeks hit`;
+    const isHit = m.goalsHit === m.weekCount && m.weekCount > 0;
+    rowsHTML += `<div class="monthly-comp-row">
+      <span class="monthly-comp-label">${label}</span>
+      <div class="monthly-comp-bar-outer"><div class="monthly-comp-bar-inner${isHit ? ' hit' : ''}" style="width:${barPct}%"></div></div>
+      <span class="monthly-comp-stats"><strong>${timeStr}</strong> · ${hitRate}</span>
+    </div>`;
+  });
+
+  container.innerHTML = `<div class="monthly-comparison">
+    <div class="monthly-comp-title">Monthly overview</div>
+    ${rowsHTML}
+  </div>`;
 }
 
 /* ===== History tabs ===== */
