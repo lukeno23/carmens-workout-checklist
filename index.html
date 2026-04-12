@@ -197,11 +197,11 @@
     margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); transition: border-color 0.3s, background 0.3s;
   }
   .category.done { border-color: var(--green); background: var(--green-light); }
-  .category-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .category-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .category-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; gap: 12px; }
+  .category-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1rem; line-height: 1.15; display: flex; align-items: center; gap: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .category-name:active { opacity: 0.7; }
   .category-icon { font-size: 1.2rem; }
-  .category-target { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+  .category-target { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; text-align: right; white-space: nowrap; line-height: 1.35; }
   .category-progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
   .category-bar-outer { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
   .category-bar-inner { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; }
@@ -399,6 +399,7 @@
   .settings-save:hover { background: var(--accent-hover); }
   .settings-reset { background: none; border: 1px solid var(--border); color: var(--text-muted); }
   .settings-reset:hover { border-color: var(--accent); color: var(--accent); }
+  .app-version { text-align: center; font-size: 0.7rem; color: var(--text-muted); padding: 16px 0 4px; opacity: 0.6; }
 
   /* More view */
   .guidance-content h3 { font-family: 'Fraunces', Georgia, serif; font-size: 0.85rem; font-weight: 600; color: var(--accent); margin-top: 16px; margin-bottom: 6px; }
@@ -610,6 +611,7 @@
     <textarea class="backup-textarea" id="backupTextarea" placeholder="Paste your backup code here, then press Restore again."></textarea>
     <div class="backup-status" id="backupStatus"></div>
   </div>
+  <div class="app-version" id="appVersion"></div>
 </div><!-- /viewSettings -->
 
 
@@ -689,6 +691,8 @@
 <script>
 /* ===== Default categories ===== */
 const DEFAULT_TARGETS = { lower: 45, upper: 25, fullbody: 35, cardio: 45, core: 30 };
+const APP_VERSION = '1.4.0';
+
 const CAT_META = [
   { id: 'lower',    name: 'Lower Body Strength',  icon: '🦵🏻', desc: 'Legs & glutes' },
   { id: 'upper',    name: 'Upper Body Strength',   icon: '💪🏻', desc: 'Arms & weights' },
@@ -1580,6 +1584,7 @@ function renderSettings() {
   CAT_META.forEach(cat => {
     container.innerHTML += `<div class="settings-cat-row"><span class="cat-label">${cat.icon} ${cat.name}</span><input type="number" id="setting-${cat.id}" min="0" max="120" value="${targets[cat.id]}"><span>min</span></div>`;
   });
+  document.getElementById('appVersion').textContent = `v${APP_VERSION}`;
 }
 
 function saveSettings() {
@@ -1839,7 +1844,7 @@ function render() {
     div.innerHTML = `
       <div class="category-header">
         <div class="category-name" onclick="openVideoModal('${cat.id}')"><span class="category-icon">${cat.icon}</span> ${cat.name}</div>
-        <div class="category-target">${cat.desc} · ${cat.target} min goal</div>
+        <div class="category-target">${cat.desc}<br>${cat.target} min goal</div>
       </div>
       <div class="category-progress-row">
         <div class="category-bar-outer"><div class="category-bar-inner" style="width:${pct}%"></div></div>
